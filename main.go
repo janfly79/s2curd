@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/liudanking/gorm2sql/sqlorm"
+	"github.com/janfly79/s2curd/sqlorm"
 
 	log "github.com/liudanking/goutil/logutil"
 
@@ -26,6 +26,7 @@ func main() {
 	app.EnableBashCompletion = true
 	app.Commands = []cli.Command{
 		sqlorm.SqlCommand(),
+		sqlorm.CurdCommand(),
 	}
 
 	err := app.Run(os.Args)

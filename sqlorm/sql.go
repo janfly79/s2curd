@@ -1,13 +1,20 @@
 package sqlorm
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"github.com/janfly79/s2curd/util/writefile"
 	"go/ast"
+	"go/format"
+	"go/token"
+	"html/template"
 	"strconv"
 	"strings"
 
-	"github.com/liudanking/gorm2sql/util"
+	"github.com/janfly79/s2curd/util"
+
+	"github.com/janfly79/s2curd/bindata"
 
 	"github.com/pinzolo/casee"
 
@@ -17,6 +24,46 @@ import (
 type SqlGenerator struct {
 	structName string
 	modelType  *ast.StructType
+}
+
+// 生成select,update,insert,delete所需信息
+type SqlInfo struct {
+	TableName           string              // 表名
+	PrimaryKey          string              // 主键字段
+	PrimaryType         string              // 主键类型
+	StructTableName     string              // 结构表名称
+	NullStructTableName string              // 判断为空的表名
+	PkgEntity           string              // 实体空间名称
+	PkgTable            string              // 表的空间名称
+	UpperTableName      string              // 大写的表名
+	AllFieldList        string              // 所有字段列表,如: id,name
+	InsertFieldList     string              // 插入字段列表,如:id,name
+	InsertMark          string              // 插入字段使用多少个?,如: ?,?,?
+	UpdateFieldList     string              // 更新字段列表
+	SecondField         string              // 存放第二个字段
+	UpdateListField     []string            // 更新字段列表
+	FieldsInfo          []*SqlFieldInfo     // 字段信息
+	NullFieldsInfo      []*NullSqlFieldInfo // 判断为空时
+	InsertInfo          []*SqlFieldInfo
+}
+
+// 查询使用的字段结构信息
+type SqlFieldInfo struct {
+	HumpName string // 驼峰字段名称
+	Comment  string // 字段注释
+}
+type NullSqlFieldInfo struct {
+	GoType       string // golang类型
+	HumpName     string // 驼峰字段名称
+	OriFieldType string // 原数据库类型
+	Comment      string // 字段注释
+}
+
+// 表名与表注释
+type TableNameAndComment struct {
+	Index   int
+	Name    string
+	Comment string
 }
 
 func NewSqlGenerator(typeSpec *ast.TypeSpec) (*SqlGenerator, error) {
@@ -31,21 +78,99 @@ func NewSqlGenerator(typeSpec *ast.TypeSpec) (*SqlGenerator, error) {
 	}, nil
 }
 
+func (ms *SqlGenerator) AddFuncStr() (string, error) {
+
+	var (
+		columnList []string
+		//primaryKey string
+		InsertInfo    = make([]*SqlFieldInfo, 0)
+		InsertMark    string
+		insertFields  = make([]string, 0)
+		allFields     = make([]string, 0)
+		nullFieldList = make([]*NullSqlFieldInfo, 0)
+	)
+
+	for _, field := range ms.getStructFieds(ms.modelType) {
+		columnName := getColumnName(field)
+
+		nullFieldList = append(nullFieldList, &NullSqlFieldInfo{
+			HumpName: field.Names[0].Name,
+			Comment:  "",
+		})
+
+		allFields = append(allFields, columnName)
+
+		if isPrimaryKey(field) || isTimeKey(field) {
+			continue
+		}
+
+		insertFields = append(insertFields, columnName)
+		InsertInfo = append(InsertInfo, &SqlFieldInfo{
+			HumpName: field.Names[0].Name,
+			Comment:  "",
+		})
+		// 拼出SQL所需要结构数据
+		InsertMark = strings.Repeat("?,", len(insertFields))
+		columnList = append(columnList, columnName)
+	}
+
+	sqlInfo := &SqlInfo{
+		TableName: ms.tableName(),
+		//PrimaryKey:          AddQuote(PrimaryKey),
+		//PrimaryType:         primaryType,
+		StructTableName: ms.structName,
+		PkgEntity:       ".",
+		PkgTable:        ".",
+		AllFieldList:    strings.Join(allFields, ","),
+		InsertFieldList: strings.Join(columnList, ","),
+		InsertMark:      InsertMark,
+		//UpdateFieldList:     strings.Join(updateList, ","),
+		//UpdateListField:     updateListField,
+		//FieldsInfo:          fieldsList,
+		NullFieldsInfo: nullFieldList,
+		InsertInfo:     InsertInfo,
+		//SecondField:         AddQuote(secondField),
+	}
+
+	// 解析模板
+	tplByte, err := bindata.Asset("assets/tpl/curd.tpl")
+	if err != nil {
+		return "", err
+	}
+	tpl, err := template.New("CURD").Parse(string(tplByte))
+	if err != nil {
+		return "", err
+	}
+	// 解析
+	content := bytes.NewBuffer([]byte{})
+	err = tpl.Execute(content, sqlInfo)
+	if err != nil {
+		return "", err
+	}
+	return content.String(), nil
+}
+
 func (ms *SqlGenerator) GetCreateTableSql() (string, error) {
 	var tags []string
 	var primaryKeys []string
 	indices := map[string][]string{}
 	uniqIndces := map[string][]string{}
+	log.Info("mode types %+v", ms.modelType)
 	for _, field := range ms.getStructFieds(ms.modelType) {
+		log.Info("===<<<<<<=========")
+		log.Info("field unknow string %+v", util.GetFieldName(field))
+		log.Info("========>>>>>>====")
 		switch t := field.Type.(type) {
 		case *ast.Ident:
 			tag, err := generateSqlTag(field)
+			log.Info("mode tag string %+v", tag)
 			if err != nil {
 				log.Warning("generateSqlTag [%s] failed:%v", t.Name, err)
 			} else {
 				tags = append(tags, fmt.Sprintf("%s %s", getColumnName(field), tag))
 			}
 		case *ast.SelectorExpr:
+			log.Info("columnName node ")
 			tag, err := generateSqlTag(field)
 			if err != nil {
 				log.Warning("generateSqlTag [%s] failed:%v", t.Sel.Name, err)
@@ -57,10 +182,11 @@ func (ms *SqlGenerator) GetCreateTableSql() (string, error) {
 		}
 
 		columnName := getColumnName(field)
+		log.Info("columnName this is my column %+v", columnName)
 		if isPrimaryKey(field) {
 			primaryKeys = append(primaryKeys, columnName)
 		}
-
+		log.Info("primary key name %+v", primaryKeys)
 		sqlSettings := ParseTagSetting(util.GetFieldTag(field, "sql").Name)
 		if idxName, ok := sqlSettings["INDEX"]; ok {
 			keys := indices[idxName]
@@ -106,12 +232,55 @@ func (ms *SqlGenerator) GetCreateTableSql() (string, error) {
 		strings.Join(options, " ")), nil
 }
 
+func structSelection(node ast.Node) (int, int, error) {
+
+	encStruct, ok := node.(*ast.StructType)
+
+	if !ok {
+		return 0, 0, errors.New("struct name does not exist")
+	}
+
+	fset := token.NewFileSet()
+
+
+	start := fset.Position(encStruct.Pos()).Line
+	end := fset.Position(encStruct.End()).Line
+
+	return start, end, nil
+}
+
+func StructFileLine(node ast.Node) (string, error){
+	var buf bytes.Buffer
+	fset := token.NewFileSet()
+	err := format.Node(&buf, fset, node)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
+
+
 func (ms *SqlGenerator) getStructFieds(node ast.Node) []*ast.Field {
 	var fields []*ast.Field
 	nodeType, ok := node.(*ast.StructType)
 	if !ok {
 		return nil
 	}
+
+	structStr, err := StructFileLine(node)
+
+	writefile.WriteFile("cc.log", structStr)
+
+	log.Info("", structStr, err)
+
+	start,end, err := structSelection(node)
+
+	log.Info("", start, end, err)
+
+
+
 	for _, field := range nodeType.Fields.List {
 		if util.GetFieldTag(field, "sql").Name == "-" {
 			continue
@@ -129,7 +298,8 @@ func (ms *SqlGenerator) getStructFieds(node ast.Node) []*ast.Field {
 		case *ast.SelectorExpr:
 			fields = append(fields, field)
 		default:
-			log.Warning("filed %s not supported, ignore", util.GetFieldName(field))
+			fields = append(fields, field)
+			//log.Warning("filed %s not supported, ignore", util.GetFieldName(field))
 		}
 	}
 
@@ -145,6 +315,7 @@ func generateSqlTag(field *ast.Field) (string, error) {
 	var err error
 
 	tagStr := util.GetFieldTag(field, "sql").Name
+	log.Info("sql tag string %+v", tagStr)
 	sqlSettings := ParseTagSetting(tagStr)
 
 	if value, ok := sqlSettings["TYPE"]; ok {
@@ -214,6 +385,14 @@ func isPrimaryKey(field *ast.Field) bool {
 
 	return false
 }
+
+func isTimeKey(field *ast.Field) bool {
+	if len(field.Names) > 0 && (strings.ToUpper(field.Names[0].Name) == "CTIME"  || strings.ToUpper(field.Names[0].Name) == "MTIME"){
+		return true
+	}
+	return false
+}
+
 
 func mysqlTag(field *ast.Field, size int, autoIncrease bool) (string, error) {
 	typeName := ""

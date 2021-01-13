@@ -1,4 +1,4 @@
-# gorm2sql: auto generate sql from gorm model struct
+# struct2curd: auto generate curd from  struct
 
 
 A Swiss Army Knife helps you generate sql from [gorm](https://github.com/jinzhu/gorm) model struct.
@@ -7,56 +7,43 @@ A Swiss Army Knife helps you generate sql from [gorm](https://github.com/jinzhu/
 ## Installation
 
 ```
-go get github.com/liudanking/gorm2sql
+go get github.com/janfly79/struct2curd
 ```
 
 ## Usage
 
-`user_email.go`:
+`blacklist.go`:
 
-```go
-type UserBase struct {
-	UserId string `sql:"index:idx_ub"`
-	Ip     string `sql:"unique_index:uniq_ip"`
-}
+```
 
-type UserEmail struct {
-	Id       int64    `gorm:"primary_key"`
-	UserBase
-	Email      string
-	Sex        bool
-	Age        int
-	Score      float64
-	UpdateTime time.Time `sql:"default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
-	CreateTime time.Time `sql:"default:CURRENT_TIMESTAMP"`
+type Blacklist struct {
+	ID        int32 // 主键
+	Reason    string
+	UID       int64     // 用户 uid
+	CouponID  int32     // 卡券id
+	StartTime time.Time // 开始时间
+	EndTime   time.Time // 结束时间
+	Cuser     string    // 创建者
+	Ctime     time.Time
+	Mtime     time.Time
 }
 ```
 
 ```
-gorm2sql sql -f user_email.go -s UserEmail -o db.sql
+struct2curd curd -f ./testdata/blacklist.go -s Blacklist 
 ```
 
 Result:
 
-```sql
-CREATE TABLE `user_email`
-(
-  `id` bigint AUTO_INCREMENT NOT NULL ,
-  `user_id` varchar(128) NOT NULL ,
-  `ip` varchar(128) NOT NULL ,
-  `email` varchar(128) NOT NULL ,
-  `sex` boolean NOT NULL ,
-  `age` int NOT NULL ,
-  `score` double NOT NULL ,
-  `update_time` datetime NOT NULL  DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `create_time` datetime NOT NULL  DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_ub (`user_id`),
-  UNIQUE INDEX uniq_ip (`ip`),
-  PRIMARY KEY (`id`)
-) engine=innodb DEFAULT charset=utf8mb4;
+```
+appFile to blacklist.go
+
+
+
 ```
 
 
 ## How it works
 
-`gorm2sql` loads go source file to golang AST, then generate sql according to `tag` of gorm struct field.
+
+
