@@ -122,7 +122,7 @@ func (ms *SqlGenerator) AddFuncStr() (string, error) {
 		PkgTable:        ".",
 		AllFieldList:    strings.Join(allFields, ","),
 		InsertFieldList: strings.Join(columnList, ","),
-		InsertMark:      InsertMark,
+		InsertMark:      strings.TrimRight(InsertMark, ","),
 		//UpdateFieldList:     strings.Join(updateList, ","),
 		//UpdateListField:     updateListField,
 		//FieldsInfo:          fieldsList,

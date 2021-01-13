@@ -22,13 +22,13 @@ func(item *{{.StructTableName}}) Scan(row db.Row) (err error){
 }
 
 // 添加
-func add{{.StructTableName}} (ctx context.Context, value {{.StructTableName}})(lastId int64, err error){
+func add{{.StructTableName}} (ctx context.Context, item {{.StructTableName}})(lastId int64, err error){
     conn := db.Get(ctx, "user")
     sql := "INSERT INTO " + get{{.StructTableName}}TableName() + " (" + insert{{.StructTableName}}Fields + ") " +
             "VALUES ({{.InsertMark}})"
     q := db.SQLInsert(get{{.StructTableName}}TableName(), sql)
     res, err := conn.ExecContext(ctx, q,
-        {{range .InsertInfo}}value.{{.HumpName}},
+        {{range .InsertInfo}}item.{{.HumpName}},
         {{end}})
     if err != nil {
         return
