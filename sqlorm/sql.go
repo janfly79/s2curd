@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/janfly79/s2curd/util/writefile"
 	"go/ast"
 	"go/format"
 	"go/token"
@@ -269,15 +268,15 @@ func (ms *SqlGenerator) getStructFieds(node ast.Node) []*ast.Field {
 		return nil
 	}
 
-	structStr, err := StructFileLine(node)
-
-	writefile.WriteFile("cc.log", structStr)
-
-	log.Info("", structStr, err)
-
-	start,end, err := structSelection(node)
-
-	log.Info("", start, end, err)
+	//structStr, err := StructFileLine(node)
+	//
+	//writefile.WriteFile("cc.log", structStr)
+	//
+	//log.Info("", structStr, err)
+	//
+	//start,end, err := structSelection(node)
+	//
+	//log.Info("", start, end, err)
 
 
 

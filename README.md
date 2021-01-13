@@ -1,4 +1,4 @@
-# struct2curd: auto generate curd from  struct
+# s2curd: auto generate curd from  struct
 
 
 A Swiss Army Knife helps you generate sql from [gorm](https://github.com/jinzhu/gorm) model struct.
@@ -7,7 +7,8 @@ A Swiss Army Knife helps you generate sql from [gorm](https://github.com/jinzhu/
 ## Installation
 
 ```
-go get github.com/janfly79/struct2curd
+go get github.com/janfly79/s2curd
+
 ```
 
 ## Usage
@@ -30,7 +31,7 @@ type Blacklist struct {
 ```
 
 ```
-struct2curd curd -f ./testdata/blacklist.go -s Blacklist 
+s2curd curd -f ./testdata/blacklist.go -s Blacklist 
 ```
 
 Result:
