@@ -2,7 +2,7 @@
 
 
 
-func get{{.StructTableName}}TableName() string {
+func get{{.StructTableName}}Table() string {
     return "{{.TableName}}"
 }
 
@@ -24,9 +24,9 @@ func(item *{{.StructTableName}}) Scan(row db.Row) (err error){
 // 添加
 func add{{.StructTableName}} (ctx context.Context, item {{.StructTableName}})(lastId int64, err error){
     conn := db.Get(ctx, "user")
-    sql := "INSERT INTO " + get{{.StructTableName}}TableName() + " (" + insert{{.StructTableName}}Fields + ") " +
+    sql := "INSERT INTO " + get{{.StructTableName}}Table() + " (" + insert{{.StructTableName}}Fields + ") " +
             "VALUES ({{.InsertMark}})"
-    q := db.SQLInsert(get{{.StructTableName}}TableName(), sql)
+    q := db.SQLInsert(get{{.StructTableName}}Table(), sql)
     res, err := conn.ExecContext(ctx, q,
         {{range .InsertInfo}}item.{{.HumpName}},
         {{end}})
@@ -39,8 +39,8 @@ func add{{.StructTableName}} (ctx context.Context, item {{.StructTableName}})(la
 
 func del{{.StructTableName}} (ctx context.Context, id interface{}) (err error){
     conn := db.Get(ctx, "user")
-    sql := "delete from " + get{{.StructTableName}}TableName() + " where id = ?"
-    q := db.SQLDelete(get{{.StructTableName}}TableName(), sql)
+    sql := "delete from " + get{{.StructTableName}}Table() + " where id = ?"
+    q := db.SQLDelete(get{{.StructTableName}}Table(), sql)
     _, err = conn.ExecContext(ctx, q, id)
     return
 }
@@ -49,8 +49,8 @@ func del{{.StructTableName}} (ctx context.Context, id interface{}) (err error){
 // 获取单条记录
 func get{{.StructTableName}} (ctx context.Context, where string, args []interface{})(row {{.StructTableName}}, err error){
     conn := db.Get(ctx, db{{.StructTableName}})
-    sqlText := "select " + list{{.StructTableName}}Fields + " from " + get{{.StructTableName}}TableName() + " " + where
-    q := db.SQLSelect(get{{.StructTableName}}TableName(), sqlText)
+    sqlText := "select " + list{{.StructTableName}}Fields + " from " + get{{.StructTableName}}Table() + " " + where
+    q := db.SQLSelect(get{{.StructTableName}}Table(), sqlText)
     sqlRow := conn.QueryRowContext(ctx, q, args...)
     if err = row.Scan(sqlRow); db.IsNoRowsErr(err) {
     	err = nil
@@ -61,8 +61,8 @@ func get{{.StructTableName}} (ctx context.Context, where string, args []interfac
 // 更新
 func update{{.StructTableName}}(ctx context.Context, updateStr string, where string, args []interface{})(err error) {
     conn := db.Get(ctx, db{{.StructTableName}})
-    sqlText := "update " + get{{.StructTableName}}TableName() + " set " + updateStr + " " + where
-    q := db.SQLUpdate(get{{.StructTableName}}TableName(), sqlText)
+    sqlText := "update " + get{{.StructTableName}}Table() + " set " + updateStr + " " + where
+    q := db.SQLUpdate(get{{.StructTableName}}Table(), sqlText)
     _, err = conn.ExecContext(ctx, q, args...)
     return
 }
@@ -70,8 +70,8 @@ func update{{.StructTableName}}(ctx context.Context, updateStr string, where str
 // 列表
 func list{{.StructTableName}} (ctx context.Context, where string, args []interface{}) (rowsResult []{{.StructTableName}}, err error) {
     conn := db.Get(ctx, db{{.StructTableName}})
-    sqlText := "select " + list{{.StructTableName}}Fields + " from "+get{{.StructTableName}}TableName()+" " + where
-    q := db.SQLSelect(get{{.StructTableName}}TableName(), sqlText)
+    sqlText := "select " + list{{.StructTableName}}Fields + " from "+get{{.StructTableName}}Table()+" " + where
+    q := db.SQLSelect(get{{.StructTableName}}Table(), sqlText)
     rows, err := conn.QueryContext(ctx, q, args...)
     if err != nil {
             return
@@ -92,8 +92,8 @@ func list{{.StructTableName}} (ctx context.Context, where string, args []interfa
 
 func count{{.StructTableName}} (ctx context.Context, where string, args []interface{})(total int32, err error){
     conn := db.Get(ctx, db{{.StructTableName}})
-    sqlText := "select count(*) from "+ get{{.StructTableName}}TableName()+" " + where
-    q := db.SQLSelect(get{{.StructTableName}}TableName(), sqlText)
+    sqlText := "select count(*) from "+ get{{.StructTableName}}Table()+" " + where
+    q := db.SQLSelect(get{{.StructTableName}}Table(), sqlText)
     err = conn.QueryRowContext(ctx, q, args...).Scan(&total)
     return
 }
