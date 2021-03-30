@@ -55,6 +55,14 @@ func CurdCommand() cli.Command {
 				Name:  "struct, s",
 				Usage: "struct name or pattern: https://golang.org/pkg/path/filepath/#Match",
 			},
+			&cli.StringFlag{
+				Name:  "db, d",
+				Usage: "db name or pattern: user",
+			},
+			&cli.StringFlag{
+				Name:  "table, t",
+				Usage: "table name or pattern: t_coupon_send_plan",
+			},
 		},
 		Action: CurdCommandAction,
 	}
@@ -168,6 +176,16 @@ func CurdCommandAction(c *cli.Context) error {
 		return match
 	}
 
+	db := c.String("db")
+	if db == "" {
+		return errors.New("db is empty")
+	}
+
+	table := c.String("table")
+	if table == "" {
+		return errors.New("table is empty")
+	}
+
 	var types []*ast.TypeSpec
 	if !fi.IsDir() {
 		fset := token.NewFileSet()
@@ -228,7 +246,7 @@ func CurdCommandAction(c *cli.Context) error {
 			return err
 		}
 
-		str, err := ms.AddFuncStr()
+		str, err := ms.AddCurdFuncStr(db,table)
 
 		if err != nil {
 			log.Warning("create curd string failed:%v", err)

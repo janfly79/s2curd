@@ -31,7 +31,7 @@ type Blacklist struct {
 ```
 
 ```
-s2curd curd -f testdata/sqlmodel/blacklist.go -s Blacklist
+s2curd  curd -f testdata/sqlmodel/blacklist.go -s Blacklist -d user -t t_black_list
 ```
 
 Result:
@@ -51,15 +51,9 @@ type Blacklist struct {
 	Mtime     time.Time
 }
 
-func getBlacklistTable() string {
-	return "blacklist"
-}
-
 const insertBlacklistFields = "`reason`,`uid`,`coupon_id`,`start_time`,`end_time`,`cuser`"
 
 const listBlacklistFields = "`id`,`reason`,`uid`,`coupon_id`,`start_time`,`end_time`,`cuser`,`ctime`,`mtime`"
-
-const dbBlacklist = "user"
 
 func (item *Blacklist) Scan(row db.Row) (err error) {
 	if err = row.Scan(
@@ -81,9 +75,9 @@ func (item *Blacklist) Scan(row db.Row) (err error) {
 // 添加
 func addBlacklist(ctx context.Context, item Blacklist) (lastId int64, err error) {
 	conn := db.Get(ctx, "user")
-	sql := "INSERT INTO " + getBlacklistTable() + " (" + insertBlacklistFields + ") " +
+	sql := "insert into t_black_list (" + insertBlacklistFields + ") " +
 		"VALUES (?,?,?,?,?,?)"
-	q := db.SQLInsert(getBlacklistTable(), sql)
+	q := db.SQLInsert("t_black_list", sql)
 	res, err := conn.ExecContext(ctx, q,
 		item.Reason,
 		item.UID,
@@ -101,17 +95,17 @@ func addBlacklist(ctx context.Context, item Blacklist) (lastId int64, err error)
 
 func delBlacklist(ctx context.Context, id interface{}) (err error) {
 	conn := db.Get(ctx, "user")
-	sql := "delete from " + getBlacklistTable() + " where id = ?"
-	q := db.SQLDelete(getBlacklistTable(), sql)
+	sql := "delete from t_black_list where id = ?"
+	q := db.SQLDelete("t_black_list", sql)
 	_, err = conn.ExecContext(ctx, q, id)
 	return
 }
 
 // 获取单条记录
 func getBlacklist(ctx context.Context, where string, args []interface{}) (row Blacklist, err error) {
-	conn := db.Get(ctx, dbBlacklist)
-	sqlText := "select " + listBlacklistFields + " from " + getBlacklistTable() + " " + where
-	q := db.SQLSelect(getBlacklistTable(), sqlText)
+	conn := db.Get(ctx, "user")
+	sqlText := "select " + listBlacklistFields + " from t_black_list " + where
+	q := db.SQLSelect("t_black_list", sqlText)
 	sqlRow := conn.QueryRowContext(ctx, q, args...)
 	if err = row.Scan(sqlRow); db.IsNoRowsErr(err) {
 		err = nil
@@ -121,18 +115,18 @@ func getBlacklist(ctx context.Context, where string, args []interface{}) (row Bl
 
 // 更新
 func updateBlacklist(ctx context.Context, updateStr string, where string, args []interface{}) (err error) {
-	conn := db.Get(ctx, dbBlacklist)
-	sqlText := "update " + getBlacklistTable() + " set " + updateStr + " " + where
-	q := db.SQLUpdate(getBlacklistTable(), sqlText)
+	conn := db.Get(ctx, "user")
+	sqlText := "update t_black_list set " + updateStr + " " + where
+	q := db.SQLUpdate("t_black_list", sqlText)
 	_, err = conn.ExecContext(ctx, q, args...)
 	return
 }
 
 // 列表
 func listBlacklist(ctx context.Context, where string, args []interface{}) (rowsResult []Blacklist, err error) {
-	conn := db.Get(ctx, dbBlacklist)
-	sqlText := "select " + listBlacklistFields + " from " + getBlacklistTable() + " " + where
-	q := db.SQLSelect(getBlacklistTable(), sqlText)
+	conn := db.Get(ctx, "user")
+	sqlText := "select " + listBlacklistFields + " from t_black_list " + where
+	q := db.SQLSelect("t_black_list", sqlText)
 	rows, err := conn.QueryContext(ctx, q, args...)
 	if err != nil {
 		return
@@ -150,13 +144,12 @@ func listBlacklist(ctx context.Context, where string, args []interface{}) (rowsR
 }
 
 func countBlacklist(ctx context.Context, where string, args []interface{}) (total int32, err error) {
-	conn := db.Get(ctx, dbBlacklist)
-	sqlText := "select count(*) from " + getBlacklistTable() + " " + where
-	q := db.SQLSelect(getBlacklistTable(), sqlText)
+	conn := db.Get(ctx, "user")
+	sqlText := "select count(*) from t_black_list " + where
+	q := db.SQLSelect("t_black_list", sqlText)
 	err = conn.QueryRowContext(ctx, q, args...).Scan(&total)
 	return
 }
-
 
 ```
 
