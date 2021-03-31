@@ -229,7 +229,79 @@ func (ms *SqlGenerator) AddCurdFuncStr(originDBName, originTableName string) (st
 }
 
 
+func (ms *SqlGenerator) AddCacheFuncStr() (string, error) {
 
+	var (
+		columnList []string
+		//primaryKey string
+		InsertInfo    = make([]*SqlFieldInfo, 0)
+		InsertMark    string
+		insertFields  = make([]string, 0)
+		allFields     = make([]string, 0)
+		nullFieldList = make([]*NullSqlFieldInfo, 0)
+	)
+
+	for _, field := range ms.getStructFieds(ms.modelType) {
+		columnName := getColumnName(field)
+
+		nullFieldList = append(nullFieldList, &NullSqlFieldInfo{
+			HumpName: field.Names[0].Name,
+			Comment:  "",
+		})
+
+		allFields = append(allFields, columnName)
+
+		if isPrimaryKey(field) || isTimeKey(field) {
+			continue
+		}
+
+		insertFields = append(insertFields, columnName)
+		InsertInfo = append(InsertInfo, &SqlFieldInfo{
+			HumpName: field.Names[0].Name,
+			Comment:  "",
+		})
+		// 拼出SQL所需要结构数据
+		InsertMark = strings.Repeat("?,", len(insertFields))
+		columnList = append(columnList, columnName)
+	}
+
+	sqlInfo := &SqlInfo{
+		TableName: ms.tableName(),
+		//PrimaryKey:          AddQuote(PrimaryKey),
+		//PrimaryType:         primaryType,
+		StructTableName: ms.structName,
+		PkgEntity:       ".",
+		PkgTable:        ".",
+		AllFieldList:    strings.Join(allFields, ","),
+		InsertFieldList: strings.Join(columnList, ","),
+		InsertMark:      strings.TrimRight(InsertMark, ","),
+		//UpdateFieldList:     strings.Join(updateList, ","),
+		//UpdateListField:     updateListField,
+		//FieldsInfo:          fieldsList,
+		NullFieldsInfo: nullFieldList,
+		InsertInfo:     InsertInfo,
+		//SecondField:         AddQuote(secondField),
+		OriginTableName:"xxx",// 真正的表名
+		DBName:"comic",//数据库名
+	}
+
+	// 解析模板
+	tplByte, err := bindata.Asset("assets/tpl/mc.tpl")
+	if err != nil {
+		return "", err
+	}
+	tpl, err := template.New("mc").Parse(string(tplByte))
+	if err != nil {
+		return "", err
+	}
+	// 解析
+	content := bytes.NewBuffer([]byte{})
+	err = tpl.Execute(content, sqlInfo)
+	if err != nil {
+		return "", err
+	}
+	return content.String(), nil
+}
 
 func (ms *SqlGenerator) GetCreateTableSql() (string, error) {
 	var tags []string

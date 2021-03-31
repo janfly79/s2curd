@@ -27,6 +27,7 @@ func main() {
 	app.Commands = []cli.Command{
 		sqlorm.SqlCommand(),
 		sqlorm.CurdCommand(),
+		sqlorm.CacheCommand(),
 	}
 
 	err := app.Run(os.Args)

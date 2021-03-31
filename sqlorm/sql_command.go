@@ -42,6 +42,24 @@ func SqlCommand() cli.Command {
 	}
 }
 
+func CacheCommand() cli.Command {
+	return cli.Command{
+		Name:  "cache",
+		Usage: "generate mc cache from golang model struct",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "file, f",
+				Usage: "source file or dir, default: current dir",
+			},
+			&cli.StringFlag{
+				Name:  "struct, s",
+				Usage: "struct name or pattern: https://golang.org/pkg/path/filepath/#Match",
+			},
+		},
+		Action: CacheCommandAction,
+	}
+}
+
 func CurdCommand() cli.Command {
 	return cli.Command{
 		Name:  "curd",
@@ -153,6 +171,112 @@ func SqlCommandAction(c *cli.Context) error {
 	}
 
 	return ioutil.WriteFile(out, []byte(strings.Join(sqls, "\n\n")), 0666)
+}
+
+func CacheCommandAction(c *cli.Context) error {
+	file := c.String("file")
+	if file == "" {
+		file, _ = os.Getwd()
+	}
+	fi, err := os.Stat(file)
+	if err != nil {
+		log.Warning("get file info [%s] failed:%v", file, err)
+		return err
+	}
+
+	pattern := c.String("struct")
+	if pattern == "" {
+		return errors.New("struct is empty")
+	}
+
+	matchFunc := func(structName string) bool {
+		match, _ := filepath.Match(pattern, structName)
+		return match
+	}
+
+	var types []*ast.TypeSpec
+	if !fi.IsDir() {
+		fset := token.NewFileSet()
+		data, err := ioutil.ReadFile(file)
+		if err != nil {
+			log.Warning("read [file:%s] failed:%v", file, err)
+			return err
+		}
+		f, err := parser.ParseFile(fset, file, string(data), parser.ParseComments)
+		if err != nil {
+			log.Warning("parse [file:%s] failed:%v", file, err)
+			return err
+		}
+		types = program.FindMatchStruct([]*ast.File{f}, matchFunc)
+	} else {
+		absPath, err := gencode.AbsPath(file)
+		log.Info("abspath %s",  absPath)
+		if err != nil {
+			log.Warning("get [path:%s] absPath failed:%v", file, err)
+			return err
+		}
+		srcPkg, err := build.ImportDir(absPath, build.IgnoreVendor)
+		if err != nil {
+			log.Warning("get package [%s] info failed:%v", absPath, err)
+			return err
+		}
+
+		log.Info("import path %s", srcPkg.ImportPath)
+
+		prog, err := program.NewProgram([]string{srcPkg.ImportPath})
+		if err != nil {
+			log.Warning("new program failed:%v", err)
+			return err
+		}
+		pi, err := prog.GetPkgByName(srcPkg.ImportPath)
+		if err != nil {
+			log.Warning("get package [%s] failed:%v", srcPkg.ImportPath, err)
+			return err
+		}
+		types = program.FindMatchStruct(pi.Files, matchFunc)
+	}
+
+	//log.Info("get %d matched struct", len(types))
+
+	//writefile.AddImportModule("context", file)
+
+	for _, typ := range types {
+		//log.Info("types %+v", typ)
+		ms, err := NewSqlGenerator(typ)
+		//log.Info("NewSqlGenerator types %+v", *ms)
+		if err != nil {
+			log.Warning("create model struct failed:%v", err)
+			return err
+		}
+
+		str, err := ms.AddCacheFuncStr()
+
+		if err != nil {
+			log.Warning("create cache string failed:%v", err)
+			return err
+		}
+
+		//log.Info(str)
+
+		dotIndex := strings.LastIndex(file, ".")
+		cacheFile := file[:dotIndex]+"_mc.go"
+
+		_,err = os.Stat(cacheFile)
+		if err == nil {
+			return errors.New("cache file is already create")
+		}
+
+		err = writefile.WriteAppendFile(cacheFile, str)
+
+		if err != nil {
+			log.Warning("write cache file failed:%v", err)
+			return err
+		}
+
+		writefile.Gofmt(file)
+	}
+
+	return nil
 }
 
 func CurdCommandAction(c *cli.Context) error {

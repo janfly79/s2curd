@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-
 type Blacklist struct {
 	ID        int32 // 主键
 	Reason    string
