@@ -15,8 +15,10 @@ func(item *{{.StructTableName}}) Scan(row db.Row) (err error){
 // 添加
 func add{{.StructTableName}} (ctx context.Context, item {{.StructTableName}})(lastId int64, err error){
     conn := db.Get(ctx, "{{.DBName}}")
-    sql := "insert into {{.OriginTableName}} ({{.InsertFieldList}}) " +
-            "values ({{.InsertMark}})"
+    sql := "insert into {{.OriginTableName}} (" +
+            {{range $i,$el := .InsertFieldList}}{{if $i}},"+
+            {{else}}{{end}}"{{$el}}{{end}}"+
+            ") values ({{.InsertMark}})"
     q := db.SQLInsert("{{.OriginTableName}}", sql)
     res, err := conn.ExecContext(ctx, q,
         {{range .InsertInfo}}item.{{.HumpName}},
@@ -24,7 +26,7 @@ func add{{.StructTableName}} (ctx context.Context, item {{.StructTableName}})(la
     if err != nil {
         return
     }
-    lastId, _ = res.LastInsertId()
+    lastId, err = res.LastInsertId()
     return
 }
 
@@ -36,28 +38,23 @@ func del{{.StructTableName}} (ctx context.Context, id interface{}) (err error){
     return
 }
 
-func get{{.StructTableName}} (ctx context.Context, where string, args []interface{})(row {{.StructTableName}}, err error){
-    conn := db.Get(ctx, "{{.DBName}}")
-    sql := "select {{.AllFieldList}} from {{.OriginTableName}} " + where
-    q := db.SQLSelect("{{.OriginTableName}}", sql)
-    sqlRow := conn.QueryRowContext(ctx, q, args...)
-    if err = row.Scan(sqlRow); db.IsNoRowsErr(err) {
-    	err = nil
-    }
-    return
-}
-
 func update{{.StructTableName}}(ctx context.Context, updateStr string, where string, args []interface{})(err error) {
     conn := db.Get(ctx, "{{.DBName}}")
-    sql := "update {{.OriginTableName}} set " + updateStr + " " + where
+    sql := "update {{.OriginTableName}} set " +
+                {{range $i,$el := .InsertFieldList}}{{if $i}},"+
+                {{else}}{{end}}"{{$el}}=?{{end}} " + where
     q := db.SQLUpdate("{{.OriginTableName}}", sql)
     _, err = conn.ExecContext(ctx, q, args...)
     return
 }
 
+
 func list{{.StructTableName}} (ctx context.Context, where string, args []interface{}) (rowsResult []{{.StructTableName}}, err error) {
     conn := db.Get(ctx, "{{.DBName}}")
-    sql := "select {{.AllFieldList}} from {{.OriginTableName}} " + where
+    sql := "select "+
+                    {{range $i,$el := .AllFieldList}}{{if $i}},"+
+                    {{else}}{{end}}"{{$el}}{{end}} "+
+                    "from {{.OriginTableName}} " + where
     q := db.SQLSelect("{{.OriginTableName}}", sql)
     rows, err := conn.QueryContext(ctx, q, args...)
     if err != nil {

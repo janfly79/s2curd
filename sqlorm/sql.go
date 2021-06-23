@@ -35,8 +35,10 @@ type SqlInfo struct {
 	PkgEntity           string              // 实体空间名称
 	PkgTable            string              // 表的空间名称
 	UpperTableName      string              // 大写的表名
-	AllFieldList        string              // 所有字段列表,如: id,name
-	InsertFieldList     string              // 插入字段列表,如:id,name
+	AllFieldList        []string            // 所有字段列表,如: id,name
+	AllFieldStr         string              // 所有字段列表,如: id,name
+	InsertFieldList     []string               // 插入字段列表,如:id,name
+	InsertFieldStr      string           // 插入字段列表,如:id,name
 	InsertMark          string              // 插入字段使用多少个?,如: ?,?,?
 	UpdateFieldList     string              // 更新字段列表
 	SecondField         string              // 存放第二个字段
@@ -122,8 +124,10 @@ func (ms *SqlGenerator) AddFuncStr() (string, error) {
 		StructTableName: ms.structName,
 		PkgEntity:       ".",
 		PkgTable:        ".",
-		AllFieldList:    strings.Join(allFields, ","),
-		InsertFieldList: strings.Join(columnList, ","),
+		AllFieldList:    allFields,
+		AllFieldStr:strings.Join(allFields, ","),
+		InsertFieldList: columnList,
+		InsertFieldStr: strings.Join(columnList, ","),
 		InsertMark:      strings.TrimRight(InsertMark, ","),
 		//UpdateFieldList:     strings.Join(updateList, ","),
 		//UpdateListField:     updateListField,
@@ -197,8 +201,10 @@ func (ms *SqlGenerator) AddCurdFuncStr(originDBName, originTableName string) (st
 		StructTableName: ms.structName,
 		PkgEntity:       ".",
 		PkgTable:        ".",
-		AllFieldList:    strings.Join(allFields, ","),
-		InsertFieldList: strings.Join(columnList, ","),
+		AllFieldStr:strings.Join(allFields, ","),
+		AllFieldList:    allFields,
+		InsertFieldStr: strings.Join(columnList, ","),
+		InsertFieldList: columnList,
 		InsertMark:      strings.TrimRight(InsertMark, ","),
 		//UpdateFieldList:     strings.Join(updateList, ","),
 		//UpdateListField:     updateListField,
@@ -272,8 +278,10 @@ func (ms *SqlGenerator) AddCacheFuncStr() (string, error) {
 		StructTableName: ms.structName,
 		PkgEntity:       ".",
 		PkgTable:        ".",
-		AllFieldList:    strings.Join(allFields, ","),
-		InsertFieldList: strings.Join(columnList, ","),
+		AllFieldList:    allFields,
+		AllFieldStr:strings.Join(allFields, ","),
+		InsertFieldList: columnList,
+		InsertFieldStr: strings.Join(columnList, ","),
 		InsertMark:      strings.TrimRight(InsertMark, ","),
 		//UpdateFieldList:     strings.Join(updateList, ","),
 		//UpdateListField:     updateListField,
