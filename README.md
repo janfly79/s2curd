@@ -11,6 +11,18 @@ go get github.com/janfly79/s2curd
 
 ```
 
+## Help
+```
+s2curd -h
+
+s2curd sql -h
+
+s2curd curd -h
+
+s2curd cache -h
+
+```
+
 ## Usage
 
 `blacklist.go`:
