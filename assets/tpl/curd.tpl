@@ -4,11 +4,9 @@
 
 
 func(item *{{.StructTableName}}) Scan(row db.Row) (err error){
-    if err = row.Scan(
+    err = row.Scan(
         {{range .NullFieldsInfo}}&item.{{.HumpName}},
-    {{end}}); err != nil {
-        return
-    }
+    {{end}})
 
     return
 }
