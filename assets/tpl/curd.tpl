@@ -11,6 +11,37 @@ func(item *{{.StructTableName}}) Scan(row db.Row) (err error){
     return
 }
 
+{{range $el := .ExtStructTableName}}
+func(item {{$el}}) Value() (v driver.Value, err error) {
+     return json.Marshal(item)
+}
+
+func(item *{{$el}}) Scan(src interface{}) (err error) {
+    *item = {{$el}}{}
+    if src == nil {
+        return
+    }
+    switch srcData := src.(type) {
+    	case string:
+    		if len(srcData) == 0 {
+    			return
+    		}
+    		err = json.Unmarshal([]byte(srcData), &item)
+    		return
+    	case []byte:
+    		if len(srcData) == 0 {
+    			return
+    		}
+    		err = json.Unmarshal(srcData, &item)
+    		return
+    	default:
+    		err = errors.Errorf("[{{$el}}] unknown scan source: %+v", src)
+    }
+    return
+}
+
+{{end}}
+
 // 添加
 func add{{.StructTableName}} (ctx context.Context, item {{.StructTableName}})(lastId int64, err error){
     conn := db.Get(ctx, "{{.DBName}}")

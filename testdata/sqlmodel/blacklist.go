@@ -14,4 +14,10 @@ type Blacklist struct {
 	Cuser     string    // 创建者
 	Ctime     time.Time
 	Mtime     time.Time
+	Ext       BlackExt
+}
+
+type BlackExt struct {
+	Name string
+	Age  int32
 }

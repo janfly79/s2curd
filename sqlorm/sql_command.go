@@ -325,9 +325,9 @@ func CurdCommandAction(c *cli.Context) error {
 		}
 		types = program.FindMatchStruct([]*ast.File{f}, matchFunc)
 
-		if strings.LastIndex(string(data), "Scan") > 0 || strings.LastIndex(string(data), "db.Row") > 0 {
-			return errors.New("curd is already create")
-		}
+		//if strings.LastIndex(string(data), "Scan") > 0 || strings.LastIndex(string(data), "db.Row") > 0 {
+		//	return errors.New("curd is already create")
+		//}
 
 	} else {
 		absPath, err := gencode.AbsPath(file)
@@ -362,7 +362,7 @@ func CurdCommandAction(c *cli.Context) error {
 	//writefile.AddImportModule("context", file)
 
 	for _, typ := range types {
-		//log.Info("types %+v", typ)
+		//log.Info("types %+v", typ.Name.Name)
 		ms, err := NewSqlGenerator(typ)
 		//log.Info("NewSqlGenerator types %+v", *ms)
 		if err != nil {

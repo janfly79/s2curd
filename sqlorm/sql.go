@@ -23,6 +23,7 @@ import (
 type SqlGenerator struct {
 	structName string
 	modelType  *ast.StructType
+	ExtStructTableName []string // 扩展信息表结构名称
 }
 
 // 生成select,update,insert,delete所需信息
@@ -48,6 +49,7 @@ type SqlInfo struct {
 	InsertInfo          []*SqlFieldInfo
 	OriginTableName string // 真正的表名
 	DBName string // 数据库名
+	ExtStructTableName []string // 扩展信息表结构名称
 }
 
 // 查询使用的字段结构信息
@@ -169,8 +171,11 @@ func (ms *SqlGenerator) AddCurdFuncStr(originDBName, originTableName string) (st
 		allFields     = make([]string, 0)
 		nullFieldList = make([]*NullSqlFieldInfo, 0)
 	)
-
-	for _, field := range ms.getStructFieds(ms.modelType) {
+	//log.Info("hahahhahaha,======\n\n")
+	//log.Info("ms.structName,======\n\n",ms.structName)
+	list := ms.getStructFieds(ms.modelType)
+	//log.Info("fields len:%d ==== \n",len(list))
+	for _, field := range list {
 		columnName := getColumnName(field)
 
 		nullFieldList = append(nullFieldList, &NullSqlFieldInfo{
@@ -194,6 +199,8 @@ func (ms *SqlGenerator) AddCurdFuncStr(originDBName, originTableName string) (st
 		columnList = append(columnList, columnName)
 	}
 
+	//log.Info("insertFields ======\n\n",insertFields)
+
 	sqlInfo := &SqlInfo{
 		TableName: ms.tableName(),
 		//PrimaryKey:          AddQuote(PrimaryKey),
@@ -214,6 +221,7 @@ func (ms *SqlGenerator) AddCurdFuncStr(originDBName, originTableName string) (st
 		//SecondField:         AddQuote(secondField),
 		OriginTableName:originTableName,// 真正的表名
 		DBName:originDBName,//数据库名
+		ExtStructTableName:ms.ExtStructTableName,
 	}
 
 	// 解析模板
@@ -434,24 +442,31 @@ func (ms *SqlGenerator) getStructFieds(node ast.Node) []*ast.Field {
 	//
 	//writefile.WriteFile("cc.log", structStr)
 	//
-	//log.Info("", structStr, err)
+	//log.Info("struct >>>> ", structStr, err)
 	//
 	//start,end, err := structSelection(node)
 	//
 	//log.Info("", start, end, err)
 
 
-
+	//log.Info("fields len: %d",len(nodeType.Fields.List))
 	for _, field := range nodeType.Fields.List {
 		if util.GetFieldTag(field, "sql").Name == "-" {
 			continue
 		}
+		//log.Info("filed %s ", util.GetFieldName(field))
 
 		switch t := field.Type.(type) {
 		case *ast.Ident:
 			if t.Obj != nil && t.Obj.Kind == ast.Typ {
 				if typeSpec, ok := t.Obj.Decl.(*ast.TypeSpec); ok {
-					fields = append(fields, ms.getStructFieds(typeSpec.Type)...)
+					//log.Info("typeSpec Name >>>> = ",typeSpec.Name.Name)
+					if strings.Contains(util.GetFieldName(field),"Ext") && strings.Contains(typeSpec.Name.Name,"Ext") {
+						fields = append(fields, field)
+						ms.ExtStructTableName = append(ms.ExtStructTableName,typeSpec.Name.Name)
+					} else {
+						fields = append(fields, ms.getStructFieds(typeSpec.Type)...)
+					}
 				}
 			} else {
 				fields = append(fields, field)
